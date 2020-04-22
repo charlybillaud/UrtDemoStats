@@ -66,10 +66,20 @@ foreach ($files as $fileIn) {
             }
 
             if ($tabLine[0] === 'kill:') {
-                $tabRound[$lineRound]['victim'] = $tabLine[2];
-                $tabRound[$lineRound]['killer'] = $tabLine[7];
-                $tabRound[$lineRound]['weapon'] = $tabLine[10];
+                //$tabRound[$lineRound]['victim'] = $tabLine[2];
+                $tabRound[$lineRound]['shooter'] = $tabLine[7];
+                //$tabRound[$lineRound]['kill'] += $tabRound[$lineRound]['kill'];
+                //$tabRound[$lineRound]['weapon'] = $tabLine[10];
+                $tabRound[$lineRound]['is_kill'] = 1;
                 $tabRound[$lineRound]['round'] = $nbRound;
+                $tabRound[$lineRound]['damage'] = 0;
+            }
+            if ($tabLine[0] === 'hit:') {
+                //$tabRound[$lineRound]['victim'] = $tabLine[2];
+                $tabRound[$lineRound]['shooter'] = $tabLine[2];
+                $tabRound[$lineRound]['is_kill'] = 0;
+                $tabRound[$lineRound]['round'] = $nbRound;
+                $tabRound[$lineRound]['damage'] = $tabLine[7];
             }
         }
 
@@ -77,16 +87,17 @@ foreach ($files as $fileIn) {
         $round = 1;
 
         foreach ($tabRound as $lineRound) {
-            $tabPlayer[$lineRound['killer']][$lineRound['round']]['NbRoundWinRedTeam'] = $tabMatchScore[$lineRound['round']]['NbRoundWinRedTeam'];
-            $tabPlayer[$lineRound['killer']][$lineRound['round']]['NbRoundWinBlueTeam'] = $tabMatchScore[$lineRound['round']]['NbRoundWinBlueTeam'];
-            $tabPlayer[$lineRound['killer']][$lineRound['round']]['NbOfKill'] = $tabPlayer[$lineRound['killer']][$lineRound['round']]['NbOfKill'] + 1;
-            //$tabByPlayer[]
+            $tabPlayer[$lineRound['shooter']][$lineRound['round']]['NbRoundWinRedTeam'] = $tabMatchScore[$lineRound['round']]['NbRoundWinRedTeam'];
+            $tabPlayer[$lineRound['shooter']][$lineRound['round']]['NbRoundWinBlueTeam'] = $tabMatchScore[$lineRound['round']]['NbRoundWinBlueTeam'];
+            $tabPlayer[$lineRound['shooter']][$lineRound['round']]['NbOfKill'] += $lineRound['is_kill'];
+            $tabPlayer[$lineRound['shooter']][$lineRound['round']]['Damage'] += $lineRound['damage'];
         }
+
 
         fclose($fh);
         //$strTabMatch = print_r2($tabMatch);
         //$strTabMatchScore = print_r2($tabMatchScore);
-        //$strTabMatchPlayer = print_r2($tabPlayer);
+        //echo print_r2($tabPlayer);
         $strTabMatchPlayer = build_table($tabPlayer);
         $fileOutHtml = $folderOut . basename($fileIn, '.txt') . '.html';
         file_put_contents($fileOutHtml, $strTabMatchPlayer);
@@ -134,67 +145,59 @@ function build_table($array)
 </style>
 
 <script>
-function sortTable(n) {
+function sortTable(tableClass, n) {
   var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
-  table = document.getElementById("statsPlayer");
+
+  table = document.getElementsByClassName(tableClass)[0];
   switching = true;
-  // Set the sorting direction to ascending:
   dir = "asc";
-  /* Make a loop that will continue until
-  no switching has been done: */
   while (switching) {
-    // Start by saying: no switching is done:
-    switching = false;
-    rows = table.rows;
-    /* Loop through all table rows (except the
-    first, which contains table headers): */
-    for (i = 1; i < (rows.length - 1); i++) {
-      // Start by saying there should be no switching:
-      shouldSwitch = false;
-      /* Get the two elements you want to compare,
-      one from current row and one from the next: */
-      x = rows[i].getElementsByTagName("TD")[n];
-      y = rows[i + 1].getElementsByTagName("TD")[n];
-      /* Check if the two rows should switch place,
-      based on the direction, asc or desc: */
-      if (dir == "asc") {
-        if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
-          // If so, mark as a switch and break the loop:
-          shouldSwitch = true;
-          break;
-        }
-      } else if (dir == "desc") {
-        if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
-          // If so, mark as a switch and break the loop:
-          shouldSwitch = true;
-          break;
-        }
+      switching = false;
+      rows = table.getElementsByTagName("TR");
+      for (i = 1; i < (rows.length - 1); i++) {
+          shouldSwitch = false;
+          x = rows[i].getElementsByTagName("TD")[n];
+          y = rows[i + 1].getElementsByTagName("TD")[n];
+          var xContent = (isNaN(x.innerHTML))
+              ? (x.innerHTML.toLowerCase() === '-')
+                    ? 0 : x.innerHTML.toLowerCase()
+              : parseFloat(x.innerHTML);
+          var yContent = (isNaN(y.innerHTML))
+              ? (y.innerHTML.toLowerCase() === '-')
+                    ? 0 : y.innerHTML.toLowerCase()
+              : parseFloat(y.innerHTML);
+          if (dir == "asc") {
+              if (xContent > yContent) {
+                  shouldSwitch= true;
+                  break;
+              }
+          } else if (dir == "desc") {
+              if (xContent < yContent) {
+                  shouldSwitch= true;
+                  break;
+              }
+          }
       }
-    }
-    if (shouldSwitch) {
-      /* If a switch has been marked, make the switch
-      and mark that a switch has been done: */
-      rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
-      switching = true;
-      // Each time a switch is done, increase this count by 1:
-      switchcount ++;
-    } else {
-      /* If no switching has been done AND the direction is "asc",
-      set the direction to "desc" and run the while loop again. */
-      if (switchcount == 0 && dir == "asc") {
-        dir = "desc";
-        switching = true;
+      if (shouldSwitch) {
+          rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+          switching = true;
+          switchcount ++;
+      } else {
+          if (switchcount == 0 && dir == "asc") {
+              dir = "desc";
+              switching = true;
+          }
       }
-    }
-  }
+   }
 }
 </script>
-<table id="statsPlayer">
+<table id="statsPlayer" class="tableStatsPlayer">
 <tr>
-    <th onclick="sortTable(0)">Player</th>
-    <th onclick="sortTable(1)">N°Round</th>
-    <th onclick="sortTable(2)">Kills</th>
-    <th onclick="sortTable(3)">Score (RED-BLUE)</th>
+    <th onclick="sortTable('tableStatsPlayer',0)">Player</th>
+    <th onclick="sortTable('tableStatsPlayer',1)">N°Round</th>
+    <th onclick="sortTable('tableStatsPlayer',2)">Kills</th>
+    <th onclick="sortTable('tableStatsPlayer',3)">Damage</th>
+    <th onclick="sortTable('tableStatsPlayer',4)">Score (RED-BLUE)</th>
 </tr>
 HTML;
 
@@ -207,9 +210,11 @@ HTML;
                     $NbRoundWinBlueTeam = $value;
                 } elseif ($dataRound === 'NbOfKill') {
                     $kills = $value;
+                } else if ($dataRound === 'Damage') {
+                    $damage = $value;
                 }
             }
-            $html .= "<tr><td>$player</td><td>$round</td><td>$kills</td><td>$NbRoundWinRedTeam - $NbRoundWinBlueTeam</td>";
+            $html .= "<tr><td>$player</td><td>$round</td><td>$kills</td><td>$damage</td><td>$NbRoundWinRedTeam - $NbRoundWinBlueTeam</td>";
         }
         $html .= '</tr>' . PHP_EOL;
     }
