@@ -22,6 +22,10 @@ foreach ($files as $fileIn) {
 
 $files = scandir($folderOutDemoTxt);
 foreach ($files as $fileIn) {
+    // Init all array
+    $tabMatchScore = array();
+    $tabRound = array();
+    $tabPlayer = array();
     $lineRound = 0;
     if (($fileIn === '.') || ($fileIn === '..') || ($fileIn === '.gitkeep')) {
         continue;
@@ -31,7 +35,7 @@ foreach ($files as $fileIn) {
         $nbRound = 1;
         while (!feof($fh)) {
             $line = fgets($fh);
-            // Remplace les charactères illisibles par un espace
+            // Replace non UTF8 character by space
             $line = preg_replace('/[\x00-\x1F\x80-\xFF]/', ' ', $line);
             $tabLine = array();
             $tabLine = explode(' ', $line);
@@ -74,6 +78,8 @@ foreach ($files as $fileIn) {
                 $tabRound[$lineRound]['is_kill'] = 1;
                 $tabRound[$lineRound]['round'] = $nbRound;
                 $tabRound[$lineRound]['damage'] = 0;
+                $tabRound[$lineRound]['hit'] = 0;
+                $tabRound[$lineRound]['miss'] = 0;
             }
             if ($tabLine[0] === 'hit:') {
                 //$tabRound[$lineRound]['victim'] = $tabLine[2];
@@ -81,10 +87,21 @@ foreach ($files as $fileIn) {
                 $tabRound[$lineRound]['is_kill'] = 0;
                 $tabRound[$lineRound]['round'] = $nbRound;
                 $tabRound[$lineRound]['damage'] = $tabLine[7];
+                $tabRound[$lineRound]['hit'] = 1;
+                $tabRound[$lineRound]['miss'] = 0;
+            }
+            if ($tabLine[0] === 'miss:') {
+                //$tabRound[$lineRound]['victim'] = $tabLine[2];
+                $tabRound[$lineRound]['shooter'] = $tabLine[2];
+                $tabRound[$lineRound]['is_kill'] = 0;
+                $tabRound[$lineRound]['round'] = $nbRound;
+                $tabRound[$lineRound]['damage'] = 0;
+                $tabRound[$lineRound]['hit'] = 0;
+                $tabRound[$lineRound]['miss'] = 1;
             }
         }
 
-        $tabPlayer = array();
+
         $round = 1;
 
         foreach ($tabRound as $lineRound) {
@@ -92,6 +109,8 @@ foreach ($files as $fileIn) {
             $tabPlayer[$lineRound['shooter']][$lineRound['round']]['NbRoundWinBlueTeam'] = $tabMatchScore[$lineRound['round']]['NbRoundWinBlueTeam'];
             $tabPlayer[$lineRound['shooter']][$lineRound['round']]['NbOfKill'] += $lineRound['is_kill'];
             $tabPlayer[$lineRound['shooter']][$lineRound['round']]['Damage'] += $lineRound['damage'];
+            $tabPlayer[$lineRound['shooter']][$lineRound['round']]['Hit'] += $lineRound['hit'];
+            $tabPlayer[$lineRound['shooter']][$lineRound['round']]['Miss'] += $lineRound['miss'];
         }
 
 
@@ -198,7 +217,10 @@ function sortTable(tableClass, n) {
     <th onclick="sortTable('tableStatsPlayer',1)">N°Round</th>
     <th onclick="sortTable('tableStatsPlayer',2)">Kills</th>
     <th onclick="sortTable('tableStatsPlayer',3)">Damage</th>
-    <th onclick="sortTable('tableStatsPlayer',4)">Score (RED-BLUE)</th>
+    <th onclick="sortTable('tableStatsPlayer',4)">Hit</th>
+    <th onclick="sortTable('tableStatsPlayer',5)">Miss</th>
+    <th onclick="sortTable('tableStatsPlayer',6)">Accuracy</th>
+    <th onclick="sortTable('tableStatsPlayer',7)">Score (RED-BLUE)</th>
 </tr>
 HTML;
 
@@ -213,9 +235,25 @@ HTML;
                     $kills = $value;
                 } else if ($dataRound === 'Damage') {
                     $damage = $value;
+                } else if ($dataRound === 'Hit') {
+                    $hit = $value;
+                } else if ($dataRound === 'Miss') {
+                    $miss = $value;
                 }
             }
-            $html .= "<tr><td>$player</td><td>$round</td><td>$kills</td><td>$damage</td><td>$NbRoundWinRedTeam - $NbRoundWinBlueTeam</td>";
+            $miss = intval($miss);
+            $hit = intval($hit);
+            if (($miss === 0) && ($hit === 0)) {
+                $accuracy = '/';
+            } else if ($miss === 0) {
+                $accuracy = 1;
+            } else if ($hit === 0) {
+                $accuracy = 0;
+            } else {
+                $accuracy = $hit / ($miss + $hit);
+                $accuracy = substr($accuracy, 0, 4);
+            }
+            $html .= "<tr><td>$player</td><td>$round</td><td>$kills</td><td>$damage</td><td>$hit</td><td>$miss</td><td>$accuracy</td><td>$NbRoundWinRedTeam - $NbRoundWinBlueTeam</td>";
         }
         $html .= '</tr>' . PHP_EOL;
     }
