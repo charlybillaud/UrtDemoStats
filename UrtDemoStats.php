@@ -22,6 +22,7 @@ foreach ($files as $fileIn) {
 
 $files = scandir($folderOutDemoTxt);
 foreach ($files as $fileIn) {
+    $lineRound = 0;
     if (($fileIn === '.') || ($fileIn === '..') || ($fileIn === '.gitkeep')) {
         continue;
     }
