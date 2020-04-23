@@ -26,6 +26,8 @@ foreach ($files as $fileIn) {
     $tabMatchScore = array();
     $tabRound = array();
     $tabPlayer = array();
+    $tabPlayerStats = array();
+    $tabIndivualScore = array();
     $lineRound = 0;
     if (($fileIn === '.') || ($fileIn === '..') || ($fileIn === '.gitkeep')) {
         continue;
@@ -40,9 +42,27 @@ foreach ($files as $fileIn) {
             $tabLine = array();
             $tabLine = explode(' ', $line);
 
+            if ($tabLine[0] === 'info:') {
+                $teamInfo = explode('=', $tabLine[3]);
+                if ($teamInfo[1] != 'spectator') {
+                    $tabPlayer[] = $tabLine[2];
+                }
+            }
+
+            if (($nbRound === 1) && ($lineRound === 1)) {
+                foreach ($tabPlayer as $player) {
+                    $tabIndivualScore[$nbRound][$player]['kill'] = 0;
+                    $tabIndivualScore[$nbRound][$player]['death'] = 0;
+                }
+            }
+
             // New Round
             if (($tabLine[0] === 'round:') && ($tabLine[2] === 'status=start')) {
                 $nbRound++;
+                foreach ($tabPlayer as $player) {
+                    $tabIndivualScore[$nbRound][$player]['kill'] = $tabIndivualScore[$nbRound - 1][$player]['kill'];
+                    $tabIndivualScore[$nbRound][$player]['death'] = $tabIndivualScore[$nbRound - 1][$player]['death'];
+                }
             }
             $lineRound++;
 
@@ -70,17 +90,20 @@ foreach ($files as $fileIn) {
                 }
             }
 
+
             if ($tabLine[0] === 'kill:') {
-                //$tabRound[$lineRound]['victim'] = $tabLine[2];
                 $tabRound[$lineRound]['shooter'] = $tabLine[7];
-                //$tabRound[$lineRound]['kill'] += $tabRound[$lineRound]['kill'];
-                //$tabRound[$lineRound]['weapon'] = $tabLine[10];
                 $tabRound[$lineRound]['is_kill'] = 1;
                 $tabRound[$lineRound]['round'] = $nbRound;
                 $tabRound[$lineRound]['damage'] = 0;
                 $tabRound[$lineRound]['hit'] = 0;
                 $tabRound[$lineRound]['miss'] = 0;
+                $tabIndivualScore[$nbRound][$tabLine[7]]['kill'] += 1;
+                $tabIndivualScore[$nbRound][$tabLine[2]]['death'] += 1;
+                $tabIndivualScore[$nbRound][$tabLine[2]]['kill'] += 0;
+                $tabIndivualScore[$nbRound][$tabLine[7]]['death'] += 0;
             }
+
             if ($tabLine[0] === 'hit:') {
                 //$tabRound[$lineRound]['victim'] = $tabLine[2];
                 $tabRound[$lineRound]['shooter'] = $tabLine[2];
@@ -105,20 +128,27 @@ foreach ($files as $fileIn) {
         $round = 1;
 
         foreach ($tabRound as $lineRound) {
-            $tabPlayer[$lineRound['shooter']][$lineRound['round']]['NbRoundWinRedTeam'] = $tabMatchScore[$lineRound['round']]['NbRoundWinRedTeam'];
-            $tabPlayer[$lineRound['shooter']][$lineRound['round']]['NbRoundWinBlueTeam'] = $tabMatchScore[$lineRound['round']]['NbRoundWinBlueTeam'];
-            $tabPlayer[$lineRound['shooter']][$lineRound['round']]['NbOfKill'] += $lineRound['is_kill'];
-            $tabPlayer[$lineRound['shooter']][$lineRound['round']]['Damage'] += $lineRound['damage'];
-            $tabPlayer[$lineRound['shooter']][$lineRound['round']]['Hit'] += $lineRound['hit'];
-            $tabPlayer[$lineRound['shooter']][$lineRound['round']]['Miss'] += $lineRound['miss'];
+            $tabPlayerStats[$lineRound['shooter']][$lineRound['round']]['NbRoundWinRedTeam'] = $tabMatchScore[$lineRound['round']]['NbRoundWinRedTeam'];
+            $tabPlayerStats[$lineRound['shooter']][$lineRound['round']]['NbRoundWinBlueTeam'] = $tabMatchScore[$lineRound['round']]['NbRoundWinBlueTeam'];
+            $tabPlayerStats[$lineRound['shooter']][$lineRound['round']]['NbOfKill'] += $lineRound['is_kill'];
+
+
+            $tabPlayerStats[$lineRound['shooter']][$lineRound['round']]['Damage'] += $lineRound['damage'];
+            $tabPlayerStats[$lineRound['shooter']][$lineRound['round']]['Hit'] += $lineRound['hit'];
+            $tabPlayerStats[$lineRound['shooter']][$lineRound['round']]['Miss'] += $lineRound['miss'];
+
+            foreach ($tabPlayer as $player) {
+                $tabPlayerStats[$player][$lineRound['round']]['Kill'] = $tabIndivualScore[$lineRound['round']][$player]['kill'];
+                $tabPlayerStats[$player][$lineRound['round']]['Death'] = $tabIndivualScore[$lineRound['round']][$player]['death'];
+            }
         }
 
 
         fclose($fh);
         //$strTabMatch = print_r2($tabMatch);
         //$strTabMatchScore = print_r2($tabMatchScore);
-        //echo print_r2($tabPlayer);
-        $strTabMatchPlayer = build_table($tabPlayer);
+        //echo print_r2($tabPlayerStats);
+        $strTabMatchPlayer = build_table($tabPlayerStats);
         $fileOutHtml = $folderOut . basename($fileIn, '.txt') . '.html';
         file_put_contents($fileOutHtml, $strTabMatchPlayer);
     }
@@ -215,45 +245,49 @@ function sortTable(tableClass, n) {
 <tr>
     <th onclick="sortTable('tableStatsPlayer',0)">Player</th>
     <th onclick="sortTable('tableStatsPlayer',1)">N°Round</th>
-    <th onclick="sortTable('tableStatsPlayer',2)">Kills</th>
+    <th onclick="sortTable('tableStatsPlayer',2)">Kill</th>
     <th onclick="sortTable('tableStatsPlayer',3)">Damage</th>
-    <th onclick="sortTable('tableStatsPlayer',4)">Hit</th>
-    <th onclick="sortTable('tableStatsPlayer',5)">Miss</th>
-    <th onclick="sortTable('tableStatsPlayer',6)">Accuracy</th>
-    <th onclick="sortTable('tableStatsPlayer',7)">Score (RED-BLUE)</th>
+    <th onclick="sortTable('tableStatsPlayer',4)">Accuracy (%)</th>
+    <th onclick="sortTable('tableStatsPlayer',5)">Player Score (K-D)</th>
+    <th onclick="sortTable('tableStatsPlayer',6)">Team Score (RED-BLUE)</th>
 </tr>
 HTML;
 
     foreach ($array as $player => $values) {
         foreach ($values as $round => $datasRound) {
+            // If there are only kill and death then don't write a line.
+            //if (count($datasRound) != 2) {
             foreach ($datasRound as $dataRound => $value) {
                 if ($dataRound === 'NbRoundWinRedTeam') {
                     $NbRoundWinRedTeam = $value;
                 } elseif ($dataRound === 'NbRoundWinBlueTeam') {
                     $NbRoundWinBlueTeam = $value;
                 } elseif ($dataRound === 'NbOfKill') {
-                    $kills = $value;
+                    $NbOfKill = $value;
                 } else if ($dataRound === 'Damage') {
                     $damage = $value;
                 } else if ($dataRound === 'Hit') {
                     $hit = $value;
                 } else if ($dataRound === 'Miss') {
                     $miss = $value;
+                } else if ($dataRound === 'Kill') {
+                    $kill = $value;
+                } else if ($dataRound === 'Death') {
+                    $death = $value;
                 }
             }
-            $miss = intval($miss);
-            $hit = intval($hit);
             if (($miss === 0) && ($hit === 0)) {
-                $accuracy = '/';
+                $accuracy = '-';
             } else if ($miss === 0) {
-                $accuracy = 1;
+                $accuracy = 100;
             } else if ($hit === 0) {
                 $accuracy = 0;
             } else {
-                $accuracy = $hit / ($miss + $hit);
-                $accuracy = substr($accuracy, 0, 4);
+                $accuracy = $hit / ($miss + $hit) * 100;
+                $accuracy = intval($accuracy);
             }
-            $html .= "<tr><td>$player</td><td>$round</td><td>$kills</td><td>$damage</td><td>$hit</td><td>$miss</td><td>$accuracy</td><td>$NbRoundWinRedTeam - $NbRoundWinBlueTeam</td>";
+            $html .= "<tr><td>$player</td><td>$round</td><td>$NbOfKill</td><td>$damage</td><td>$accuracy</td><td>$kill-$death</td><td>$NbRoundWinRedTeam - $NbRoundWinBlueTeam</td>";
+            //}
         }
         $html .= '</tr>' . PHP_EOL;
     }
