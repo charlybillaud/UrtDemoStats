@@ -128,16 +128,15 @@ foreach ($files as $fileIn) {
         $round = 1;
 
         foreach ($tabRound as $lineRound) {
-            $tabPlayerStats[$lineRound['shooter']][$lineRound['round']]['NbRoundWinRedTeam'] = $tabMatchScore[$lineRound['round']]['NbRoundWinRedTeam'];
-            $tabPlayerStats[$lineRound['shooter']][$lineRound['round']]['NbRoundWinBlueTeam'] = $tabMatchScore[$lineRound['round']]['NbRoundWinBlueTeam'];
+
             $tabPlayerStats[$lineRound['shooter']][$lineRound['round']]['NbOfKill'] += $lineRound['is_kill'];
-
-
             $tabPlayerStats[$lineRound['shooter']][$lineRound['round']]['Damage'] += $lineRound['damage'];
             $tabPlayerStats[$lineRound['shooter']][$lineRound['round']]['Hit'] += $lineRound['hit'];
             $tabPlayerStats[$lineRound['shooter']][$lineRound['round']]['Miss'] += $lineRound['miss'];
 
             foreach ($tabPlayer as $player) {
+				$tabPlayerStats[$player][$lineRound['round']]['NbRoundWinRedTeam'] = $tabMatchScore[$lineRound['round']]['NbRoundWinRedTeam'];
+				$tabPlayerStats[$player][$lineRound['round']]['NbRoundWinBlueTeam'] = $tabMatchScore[$lineRound['round']]['NbRoundWinBlueTeam'];
                 $tabPlayerStats[$player][$lineRound['round']]['Kill'] = $tabIndivualScore[$lineRound['round']][$player]['kill'];
                 $tabPlayerStats[$player][$lineRound['round']]['Death'] = $tabIndivualScore[$lineRound['round']][$player]['death'];
             }
@@ -147,7 +146,7 @@ foreach ($files as $fileIn) {
         fclose($fh);
         //$strTabMatch = print_r2($tabMatch);
         //$strTabMatchScore = print_r2($tabMatchScore);
-        //echo print_r2($tabPlayerStats);
+        echo print_r2($tabPlayerStats);
         $strTabMatchPlayer = build_table($tabPlayerStats);
         $fileOutHtml = $folderOut . basename($fileIn, '.txt') . '.html';
         file_put_contents($fileOutHtml, $strTabMatchPlayer);
@@ -257,6 +256,12 @@ HTML;
         foreach ($values as $round => $datasRound) {
             // If there are only kill and death then don't write a line.
             //if (count($datasRound) != 2) {
+			$NbOfKill = 0;
+			$damage = 0;
+			$hit = 0;
+			$miss = 0;
+			$kill = 0;
+			$death = 0;
             foreach ($datasRound as $dataRound => $value) {
                 if ($dataRound === 'NbRoundWinRedTeam') {
                     $NbRoundWinRedTeam = $value;
