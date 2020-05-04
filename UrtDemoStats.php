@@ -258,7 +258,7 @@ function sortTable(tableClass, n) {
 
   table = document.getElementsByClassName(tableClass)[0];
   switching = true;
-  dir = "asc";
+  dir = "desc";
   while (switching) {
       switching = false;
       rows = table.getElementsByTagName("TR");
