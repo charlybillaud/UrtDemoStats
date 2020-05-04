@@ -2,9 +2,7 @@
 
 Exemple of the output
 
-![view_of_stats](/example/demo_slide_example.png)
-
-![complete_htlml_file](/example/slide_demo_example.html)
+![view_of_stats](/example/demo_slide_example.PNG)
 
 ## Installation
 
