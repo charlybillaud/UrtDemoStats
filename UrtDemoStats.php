@@ -124,23 +124,22 @@ foreach ($files as $fileIn) {
             if ($tabLine[0] === 'kill:') {
                 $teamShooter = $tabPlayerTeam[$tabLine[7]];
                 $teamTarget = $tabPlayerTeam[$tabLine[2]];
+                unset($tabRoundClutch[$teamTarget][$tabLine[2]]);
+                if ((count($tabRoundClutch[$teamTarget]) === 1) && (count($tabRoundClutch[$teamShooter]) >= 2)) {
+                    $tabPlayerClutching = $tabRoundClutch[$teamTarget];
+                    foreach ($tabPlayerClutching as $key => $value) {
+                        $playerClutching = $key;
+                        $teamClutching = $teamTarget;
+                    }
+                }
+                if ((count($tabRoundClutch[$teamShooter]) === 1) && (count($tabRoundClutch[$teamTarget]) >= 2)) {
+                    $tabPlayerClutching = $tabRoundClutch[$teamShooter];
+                    foreach ($tabPlayerClutching as $key => $value) {
+                        $playerClutching = $key;
+                        $teamClutching = $teamShooter;
+                    }
+                }
                 if ($teamShooter != $teamTarget) {
-                    unset($tabRoundClutch[$teamTarget][$tabLine[2]]);
-                    if ((count($tabRoundClutch[$teamTarget]) === 1) && (count($tabRoundClutch[$teamShooter]) >= 2)) {
-                        $tabPlayerClutching = $tabRoundClutch[$teamTarget];
-                        foreach ($tabPlayerClutching as $key => $value) {
-                            $playerClutching = $key;
-                            $teamClutching = $teamTarget;
-                        }
-                    }
-
-                    if ((count($tabRoundClutch[$teamShooter]) === 1) && (count($tabRoundClutch[$teamTarget]) >= 2)) {
-                        $tabPlayerClutching = $tabRoundClutch[$teamShooter];
-                        foreach ($tabPlayerClutching as $key => $value) {
-                            $playerClutching = $key;
-                            $teamClutching = $teamShooter;
-                        }
-                    }
                     $tabRound[$lineRound]['shooter'] = $tabLine[7];
                     $tabRound[$lineRound]['is_kill'] = 1;
                     $tabRound[$lineRound]['round'] = $nbRound;
