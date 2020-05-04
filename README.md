@@ -6,7 +6,7 @@ Exemple of the output
 
 ## Installation
 
-Requires php
+Requires PHP
 
 1. Set path to PHP executable in `UrtDemoStats.bat` line 10
 
