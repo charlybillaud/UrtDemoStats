@@ -30,6 +30,7 @@ foreach ($files as $fileIn) {
     $tabPlayerTeam = array();
     $tabPlayerStats = array();
     $tabIndivualScore = array();
+    $tabStatsMatch = array();
     $playerClutching = '';
     $teamClutching = '';
     $lineRound = 0;
@@ -183,6 +184,22 @@ foreach ($files as $fileIn) {
                 $tabRound[$lineRound]['miss'] = 1;
                 $tabRound[$lineRound]['clutch'] = 0;
             }
+
+            if (preg_match('/^stats:/', $tabLine[0])) {
+                $playerName = substr($tabLine[3], 5);
+                if (array_search($playerName, $tabPlayer)) {
+                    $acc = substr($tabLine[6], 4, 2);
+                    $damage = substr($tabLine[7], 7);
+                    $kills = substr($tabLine[8], 6);
+                    $deaths = substr($tabLine[9], 7);
+                    $kd = substr($tabLine[10], 3);
+                    $tabStatsMatch[$playerName]['acc'] = $acc;
+                    $tabStatsMatch[$playerName]['damage'] = $damage;
+                    $tabStatsMatch[$playerName]['kills'] = $kills;
+                    $tabStatsMatch[$playerName]['deaths'] = $deaths;
+                    $tabStatsMatch[$playerName]['kd'] = $kd;
+                }
+            }
         }
 
         foreach ($tabRound as $lineRound) {
@@ -204,10 +221,10 @@ foreach ($files as $fileIn) {
 
         fclose($fh);
         //$strTabMatch = print_r2($tabMatch);
-        //$strTabMatchScore = print_r2($tabMatchScore);
+        //print_r($tabStatsMatch);
         $fileOutHtml = $folderOut . basename($fileIn, '.txt') . '.html';
         echo 'Generate HTML stats file : ' . $fileOutHtml . PHP_EOL;
-        $strTabMatchPlayer = build_table($tabPlayerStats);
+        $strTabMatchPlayer = build_table($tabPlayerStats, $tabStatsMatch);
         file_put_contents($fileOutHtml, $strTabMatchPlayer);
     }
 }
@@ -220,43 +237,47 @@ function print_r2($val)
     return $str;
 }
 
-function build_table($array)
+function build_table($arrayStatsRound, $arrayStatsMatch)
 {
-    $html = <<<HTML
+    $html .= <<<HTML
 <style>
-#statsPlayer {
+.tabStats {
     font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
     border-collapse: collapse;
     width: 100%;
     }
 
-    #statsPlayer td, #statsPlayer th {
-    border: 1px solid #ddd;
-    padding: 8px;
-    }
+.tabStats td, .tabStats th {
+border: 1px solid #ddd;
+padding: 8px;
+}
 
-    th {
-    cursor: pointer;
-    }
+th {
+cursor: pointer;
+}
 
-    #statsPlayer tr:nth-child(even){background-color: #f2f2f2;}
+.tabStats tr:nth-child(even){background-color: #f2f2f2;}
 
-    #statsPlayer tr:hover {background-color: #ddd;}
+.tabStats tr:hover {background-color: #ddd;}
 
-    #statsPlayer th {
+.tabStats th {
     padding-top: 12px;
     padding-bottom: 12px;
     text-align: left;
     background-color: #4CAF50;
     color: white;
-    }
+}
+
+#statsPlayer {
+  margin-bottom: 50px; /* or whatever */
+}
 </style>
 
 <script>
-function sortTable(tableClass, n) {
+function sortTable(tableId, n) {
   var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
 
-  table = document.getElementsByClassName(tableClass)[0];
+  table = document.getElementById(tableId);
   switching = true;
   dir = "desc";
   while (switching) {
@@ -291,28 +312,64 @@ function sortTable(tableClass, n) {
           switching = true;
           switchcount ++;
       } else {
-          if (switchcount == 0 && dir == "asc") {
-              dir = "desc";
+          if (switchcount == 0 && dir == "desc") {
+              dir = "asc";
               switching = true;
           }
       }
    }
 }
 </script>
-<table id="statsPlayer" class="tableStatsPlayer">
+
+<table id="statsPlayer" class="tabStats">
 <tr>
-    <th onclick="sortTable('tableStatsPlayer',0)">Player</th>
-    <th onclick="sortTable('tableStatsPlayer',1)">N°Round</th>
-    <th onclick="sortTable('tableStatsPlayer',2)">Kill</th>
-    <th onclick="sortTable('tableStatsPlayer',3)">Clutch</th>
-    <th onclick="sortTable('tableStatsPlayer',4)">Damage</th>
-    <th onclick="sortTable('tableStatsPlayer',5)">Accuracy (%)</th>
-    <th onclick="sortTable('tableStatsPlayer',6)">Player Score (K-D)</th>
-    <th onclick="sortTable('tableStatsPlayer',7)">Team Score (RED-BLUE)</th>
+    <th onclick="sortTable('statsPlayer',0)">Player</th>
+    <th onclick="sortTable('statsPlayer',1)">Damage</th>
+    <th onclick="sortTable('statsPlayer',2)">Accuracy (%)</th>
+    <th onclick="sortTable('statsPlayer',3)">Kill</th>
+    <th onclick="sortTable('statsPlayer',4)">Death</th>
+    <th onclick="sortTable('statsPlayer',5)">K/D</th>
 </tr>
 HTML;
 
-    foreach ($array as $player => $values) {
+    foreach ($arrayStatsMatch as $player => $values) {
+        $accuracy = 0;
+        $damage = 0;
+        $kills = 0;
+        $deaths = 0;
+        $kd = 0;
+        foreach ($values as $key => $value) {
+            if ($key === 'acc') {
+                $accuracy = $value;
+            } elseif ($key === 'damage') {
+                $damage = $value;
+            } elseif ($key === 'kills') {
+                $kills = $value;
+            } elseif ($key === 'deaths') {
+                $deaths = $value;
+            } elseif ($key === 'kd') {
+                $kd = $value;
+            }
+        }
+        $html .= "<tr><td>$player</td><td>$damage</td><td>$accuracy</td><td>$kills</td><td>$deaths</td><td>$kd</td></tr>" . PHP_EOL;
+    }
+    $html .=  "</table></div>";
+
+    $html .= <<<HTML
+<table id="statsPlayerRound" class="tabStats">
+<tr>
+    <th onclick="sortTable('statsPlayerRound',0)">Player</th>
+    <th onclick="sortTable('statsPlayerRound',1)">N°Round</th>
+    <th onclick="sortTable('statsPlayerRound',2)">Kill</th>
+    <th onclick="sortTable('statsPlayerRound',3)">Clutch</th>
+    <th onclick="sortTable('statsPlayerRound',4)">Damage</th>
+    <th onclick="sortTable('statsPlayerRound',5)">Accuracy (%)</th>
+    <th onclick="sortTable('statsPlayerRound',6)">Player Score (K-D)</th>
+    <th onclick="sortTable('statsPlayerRound',7)">Team Score (RED-BLUE)</th>
+</tr>
+HTML;
+
+    foreach ($arrayStatsRound as $player => $values) {
         foreach ($values as $round => $datasRound) {
             // If there are only kill and death then don't write a line.
             //if (count($datasRound) != 2) {
