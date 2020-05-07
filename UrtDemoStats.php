@@ -4,8 +4,12 @@ $folderIn = 'demo_in/';
 $folderOutDemoTxt = 'demo_out/demo_to_txt/';
 $folderOut = 'demo_out/';
 
-$files = scandir($folderIn);
-foreach ($files as $fileIn) {
+$files = array();
+foreach (glob($folderIn . '*.urtdemo') as $file) {
+    $filesIn[] = $file;
+}
+
+foreach ($filesIn as $fileIn) {
     if (($fileIn === '.') || ($fileIn === '..') || ($fileIn === '.gitkeep')) {
         continue;
     }
