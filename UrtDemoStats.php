@@ -14,9 +14,9 @@ foreach ($filesIn as $fileIn) {
         continue;
     }
     // Just used to log correctly
-    $fileInLog = $folderIn . $fileIn;
+    $fileInLog = $fileIn;
     // Concert to UNIX path for use gdemo.exe
-    $fileIn = './' . $folderIn . $fileIn;
+    $fileIn = './' . $fileIn;
     $fileIn = str_replace('\\', '/', $fileIn);
     $fileOut = $folderOutDemoTxt . basename($fileIn, ".urtdemo") . '.txt';
     echo 'Convert "' . $fileInLog . '" to "' . $fileOut . '"' . PHP_EOL;
