@@ -9,6 +9,11 @@ foreach (glob($folderIn . '*.urtdemo') as $file) {
     $filesIn[] = $file;
 }
 
+if (empty($filesIn)) {
+    echo 'No demo inside folder demo_in' . PHP_EOL;
+    exit(0);
+}
+
 foreach ($filesIn as $fileIn) {
     if (($fileIn === '.') || ($fileIn === '..') || ($fileIn === '.gitkeep')) {
         continue;
@@ -25,6 +30,7 @@ foreach ($filesIn as $fileIn) {
 }
 
 $files = scandir($folderOutDemoTxt);
+
 foreach ($files as $fileIn) {
     // Init all array
     $tabMatchScore = array();
