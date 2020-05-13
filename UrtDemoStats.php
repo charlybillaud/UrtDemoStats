@@ -77,6 +77,8 @@ foreach ($files as $fileIn) {
                     $tabStatsMatch[$player]['miss'] = 0;
                     $tabStatsMatch[$player]['kills'] = 0;
                     $tabStatsMatch[$player]['deaths'] = 0;
+                    $tabStatsMatch[$player]['clutch'] = 0;
+                    $tabStatsMatch[$player]['open_kill'] = 0;
                 }
             }
 
@@ -104,6 +106,7 @@ foreach ($files as $fileIn) {
                         $tabRound[$lineRound]['hit'] = 0;
                         $tabRound[$lineRound]['miss'] = 0;
                         $tabRound[$lineRound]['clutch'] = 1;
+                        $tabStatsMatch[$playerClutching]['clutch'] += 1;
                     }
                     if ($nbRound === 1) {
                         $tabMatchScore[$nbRound]['NbRoundWinRedTeam'] = 1;
@@ -121,6 +124,7 @@ foreach ($files as $fileIn) {
                         $tabRound[$lineRound]['hit'] = 0;
                         $tabRound[$lineRound]['miss'] = 0;
                         $tabRound[$lineRound]['clutch'] = 1;
+                        $tabStatsMatch[$playerClutching]['clutch'] += 1;
                     }
                     if ($nbRound === 1) {
                         $tabMatchScore[$nbRound]['NbRoundWinRedTeam'] = 0;
@@ -140,7 +144,9 @@ foreach ($files as $fileIn) {
             if ($tabLine[0] === 'kill:') {
                 $teamShooter = $tabPlayerTeam[$tabLine[7]];
                 $teamTarget = $tabPlayerTeam[$tabLine[2]];
+                // Remove player killed
                 unset($tabRoundClutch[$teamTarget][$tabLine[2]]);
+                // detect if it's a clutch
                 if ((count($tabRoundClutch[$teamTarget]) === 1) && (count($tabRoundClutch[$teamShooter]) >= 2)) {
                     $tabPlayerClutching = $tabRoundClutch[$teamTarget];
                     foreach ($tabPlayerClutching as $key => $value) {
@@ -148,6 +154,7 @@ foreach ($files as $fileIn) {
                         $teamClutching = $teamTarget;
                     }
                 }
+                // detect if it's a clutch
                 if ((count($tabRoundClutch[$teamShooter]) === 1) && (count($tabRoundClutch[$teamTarget]) >= 2)) {
                     $tabPlayerClutching = $tabRoundClutch[$teamShooter];
                     foreach ($tabPlayerClutching as $key => $value) {
@@ -156,6 +163,13 @@ foreach ($files as $fileIn) {
                     }
                 }
                 if ($teamShooter != $teamTarget) {
+                    // detect if it's an open kill
+                    if ((count($tabRoundClutch[$teamShooter]) === 5) && (count($tabRoundClutch[$teamTarget]) === 4)) {
+                        $tabRound[$lineRound]['open_kill'] = 1;
+                        $tabStatsMatch[$tabLine[7]]['open_kill'] += 1;
+                    } else {
+                        $tabRound[$lineRound]['open_kill'] = 0;
+                    }
                     $tabRound[$lineRound]['shooter'] = $tabLine[7];
                     $tabRound[$lineRound]['is_kill'] = 1;
                     $tabRound[$lineRound]['round'] = $nbRound;
@@ -226,6 +240,8 @@ foreach ($files as $fileIn) {
                     $tabStatsMatch[$player]['miss'] = 0;
                     $tabStatsMatch[$player]['kills'] = 0;
                     $tabStatsMatch[$player]['deaths'] = 0;
+                    $tabStatsMatch[$player]['clutch'] = 0;
+                    $tabStatsMatch[$player]['open_kill'] = 0;
                 }
             }
         }
@@ -237,6 +253,7 @@ foreach ($files as $fileIn) {
             $tabPlayerStats[$lineRound['shooter']][$lineRound['round']]['Hit'] += $lineRound['hit'];
             $tabPlayerStats[$lineRound['shooter']][$lineRound['round']]['Miss'] += $lineRound['miss'];
             $tabPlayerStats[$lineRound['shooter']][$lineRound['round']]['Clutch'] += $lineRound['clutch'];
+            $tabPlayerStats[$lineRound['shooter']][$lineRound['round']]['Open_kill'] += $lineRound['open_kill'];
 
             foreach ($tabPlayer as $player) {
                 $tabPlayerStats[$player][$lineRound['round']]['NbRoundWinRedTeam'] = $tabMatchScore[$lineRound['round']]['NbRoundWinRedTeam'];
@@ -355,42 +372,32 @@ function sortTable(tableId, n) {
 <tr>
     <th onclick="sortTable('statsPlayer',0)">Player</th>
     <th onclick="sortTable('statsPlayer',1)">Damage</th>
-    <th onclick="sortTable('statsPlayer',2)">Accuracy (%)</th>
-    <th onclick="sortTable('statsPlayer',3)">Kill</th>
-    <th onclick="sortTable('statsPlayer',4)">Death</th>
-    <th onclick="sortTable('statsPlayer',5)">K/D</th>
+    <th onclick="sortTable('statsPlayer',2)">Open Kill</th>
+    <th onclick="sortTable('statsPlayer',3)">Clutch</th>
+    <th onclick="sortTable('statsPlayer',4)">Kill</th>
+    <th onclick="sortTable('statsPlayer',5)">Death</th>
+    <th onclick="sortTable('statsPlayer',6)">K/D</th>
 </tr>
 HTML;
 
     foreach ($arrayStatsMatch as $player => $values) {
         $damage = 0;
-        $hit = 0;
-        $miss = 0;
+        $openKill = 0;
         $kills = 0;
         $deaths = 0;
         $accuracy = 0;
         foreach ($values as $key => $value) {
             if ($key === 'damage') {
                 $damage = $value;
-            } elseif ($key === 'hit') {
-                $hit = $value;
-            } elseif ($key === 'miss') {
-                $miss = $value;
+            } elseif ($key === 'open_kill') {
+                $openKill = $value;
+            } elseif ($key === 'clutch') {
+                $clutch = $value;
             } elseif ($key === 'kills') {
                 $kills = $value;
             } elseif ($key === 'deaths') {
                 $deaths = $value;
             }
-        }
-        if (($miss === 0) && ($hit === 0)) {
-            $accuracy = '-';
-        } else if ($miss === 0) {
-            $accuracy = 100;
-        } else if ($hit === 0) {
-            $accuracy = 0;
-        } else {
-            $accuracy = $hit / ($miss + $hit) * 100;
-            $accuracy = intval($accuracy);
         }
         if ($kills === null) {
             $kd = '-';
@@ -406,7 +413,7 @@ HTML;
             $kd = $kills / $deaths;
         }
         $kd = round($kd, 2);
-        $html .= "<tr><td>$player</td><td>$damage</td><td>$accuracy</td><td>$kills</td><td>$deaths</td><td>$kd</td></tr>" . PHP_EOL;
+        $html .= "<tr><td>$player</td><td>$damage</td><td>$openKill</td><td>$clutch</td><td>$kills</td><td>$deaths</td><td>$kd</td></tr>" . PHP_EOL;
     }
     $html .=  "</table></div>";
 
@@ -414,11 +421,11 @@ HTML;
 <table id="statsPlayerRound" class="tabStats">
 <tr>
     <th onclick="sortTable('statsPlayerRound',0)">Player</th>
-    <th onclick="sortTable('statsPlayerRound',1)">NÂ°Round</th>
+    <th onclick="sortTable('statsPlayerRound',1)">N°Round</th>
     <th onclick="sortTable('statsPlayerRound',2)">Kill</th>
-    <th onclick="sortTable('statsPlayerRound',3)">Clutch</th>
-    <th onclick="sortTable('statsPlayerRound',4)">Damage</th>
-    <th onclick="sortTable('statsPlayerRound',5)">Accuracy (%)</th>
+    <th onclick="sortTable('statsPlayerRound',3)">Open Kill</th>
+    <th onclick="sortTable('statsPlayerRound',4)">Clutch</th>
+    <th onclick="sortTable('statsPlayerRound',5)">Damage</th>
     <th onclick="sortTable('statsPlayerRound',6)">Player Score (K-D)</th>
     <th onclick="sortTable('statsPlayerRound',7)">Team Score (RED-BLUE)</th>
 </tr>
@@ -431,8 +438,7 @@ HTML;
             $NbOfKill = 0;
             $damage = 0;
             $clutch = 0;
-            $hit = 0;
-            $miss = 0;
+            $openKill = 0;
             $kill = 0;
             $death = 0;
             $accuracy = 0;
@@ -445,10 +451,8 @@ HTML;
                     $NbOfKill = $value;
                 } else if ($dataRound === 'Damage') {
                     $damage = $value;
-                } else if ($dataRound === 'Hit') {
-                    $hit = $value;
-                } else if ($dataRound === 'Miss') {
-                    $miss = $value;
+                } else if ($dataRound === 'Open_kill') {
+                    $openKill = $value;
                 } else if ($dataRound === 'Kill') {
                     $kill = $value;
                 } else if ($dataRound === 'Death') {
@@ -457,17 +461,7 @@ HTML;
                     $clutch = $value;
                 }
             }
-            if (($miss === 0) && ($hit === 0)) {
-                $accuracy = '-';
-            } else if ($miss === 0) {
-                $accuracy = 100;
-            } else if ($hit === 0) {
-                $accuracy = 0;
-            } else {
-                $accuracy = $hit / ($miss + $hit) * 100;
-                $accuracy = intval($accuracy);
-            }
-            $html .= "<tr><td>$player</td><td>$round</td><td>$NbOfKill</td><td>$clutch</td><td>$damage</td><td>$accuracy</td><td>$kill-$death</td><td>$NbRoundWinRedTeam - $NbRoundWinBlueTeam</td>";
+            $html .= "<tr><td>$player</td><td>$round</td><td>$NbOfKill</td><td>$openKill</td><td>$clutch</td><td>$damage</td><td>$kill-$death</td><td>$NbRoundWinRedTeam - $NbRoundWinBlueTeam</td>";
             //}
         }
         $html .= '</tr>' . PHP_EOL;
